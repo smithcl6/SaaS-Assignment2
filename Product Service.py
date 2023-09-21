@@ -15,10 +15,30 @@ products = [
     {'name': 'Animal Crackers', 'price': 0.50, 'id': 10, 'quantity': 24}
 ]
 
+# Get all products and their info
 @app.route("/products", methods=["GET"])
 def get_products():
     return jsonify({"Products": products})
 
+
+@app.route('/products/<int:product_id>', methods=['GET'])
+def get_product_info(product_id):
+    product = next((product for product in products if product['id'] == product_id), None)
+    if product:
+        return jsonify({'product': product})
+    else:
+        return jsonify({'Error': "Product Not Found"}), 404
+
+@app.route('/products', methods=['POST'])
+def add_product():
+    product = {
+        'name': request.json.get('name'),
+        'price': request.json.get('price'),
+        'id': len(products) + 1,
+        'quantity': request.json.get('quantity')
+    }
+    products.append(product)
+    return jsonify({"New Product": product})
 
 if __name__ == '__main__':
     app.run(debug=True)
