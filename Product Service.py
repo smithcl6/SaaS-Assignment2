@@ -46,11 +46,11 @@ def add_product():
 # From here on and below, endpoints will interact with the cart service
 @app.route('/products/retrieve', methods=["POST"])
 def retrieve_product():
-    product_name = request.json.get('name')
+    product_id = request.json.get('id')
     specified_quantity = request.json.get('quantity')
     if (specified_quantity == None):
         specified_quantity = 1
-    product = next((product for product in products if product['name'] == product_name), None)
+    product = next((product for product in products if product['id'] == product_id), None)
     if product:
         purchased_product = copy(product)
         purchased_product['quantity'] = 0
@@ -62,16 +62,23 @@ def retrieve_product():
             purchased_product['quantity'] = purchased_product['quantity'] + 1
           else:
             if counter == 0:
-              return jsonify(product), 410
-            return jsonify(purchased_product), 206
+              return jsonify(product), 410  # Product completely out of stock
+            return jsonify(purchased_product), 206  # User asked for more than what was in stock
           counter += 1
-        print('Product remains')
-        print(product)
         return jsonify(purchased_product)  # Successfully added desired quantity
     else:
         return jsonify({"Error": "Product Not Found"}), 404
 
-
+# Return product from cart back to shelf
+@app.route('/products/return', methods=["POST"])
+def return_product():
+  product_id = request.json.get('id')
+  specified_quantity = request.json.get('quantity')
+  for product in products:
+    if product['id'] == product_id:
+      product['quantity'] += specified_quantity
+      break
+  return jsonify('Products returned')
 
 if __name__ == '__main__':
     app.run(debug=True)

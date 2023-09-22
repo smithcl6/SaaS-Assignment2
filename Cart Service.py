@@ -22,13 +22,12 @@ def check_cart(user_id):
         return jsonify({"Error": "User Cart Not Found"})
 
 # Add a specified quantity of a product to a user's cart
-# Return here; stuff broke; look into it more
-@app.route("/cart/<int:user_id>/product/<int:product_id>", methods=["POST"])
-def add_product(user_id, product_id):
+@app.route("/cart/<int:user_id>/add/<int:product_id>", methods=["POST"])
+def retrieve_product(user_id, product_id):
   product = requests.get(f'http://127.0.0.1:5000/products/{product_id}')  # Check if product exists
   if product:
     product_object = {
-       "name": request.json.get('name'),
+       "id": product_id,
        "quantity": request.json.get('quantity')
     }
     retrieved_product = requests.post('http://127.0.0.1:5000/products/retrieve', json=product_object)
@@ -47,6 +46,38 @@ def add_product(user_id, product_id):
 
 
 # Remove a specified quantity of a product to a user's cart
+# Logic here assumes that products that exist in the product service can hold virtually infinite supplies
+@app.route("/cart/<int:user_id>/remove/<int:product_id>", methods=["POST"])
+def return_product(user_id, product_id):
+  product = requests.get(f'http://127.0.0.1:5000/products/{product_id}')  # Check if product exists
+  if product:
+    product_object = {
+       "id": product_id,
+       "quantity": request.json.get('quantity')
+    }
+    if product_object['quantity'] < 1:
+      return jsonify('Must remove one or more of quantity')
+    cart = next((cart for cart in carts if cart['user'] == user_id), None)
+    valid_product = False
+    # Check if product exists IN CART
+    for cart_product in cart['products']:
+      if cart_product['id'] == product_id:
+        valid_product = True
+        temp = cart_product['quantity']
+        cart_product['quantity'] -= product_object['quantity']  # Lower quantity in cart
+        if cart_product['quantity'] <= 0:
+            cart['products'].remove(cart_product)
+            # If user tries returning higher quantity than what is in cart, then return all of the given product
+            if cart_product['quantity'] < 0:
+              product_object['quantity'] = temp
+        break
+    if valid_product:
+      requests.post('http://127.0.0.1:5000/products/return', json=product_object)
+    else:
+       return jsonify({'Cart Unchanged': 'User did not have that product'})
+    return jsonify({'Cart': cart['products']})
+  else:
+     return jsonify({"Cart unchanged": "Product does not exist"})
 
 
 if __name__ == '__main__':
