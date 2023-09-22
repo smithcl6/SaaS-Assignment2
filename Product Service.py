@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request
 app = Flask(__name__)
+from copy import copy
 
 # Sorry for not being ambitious by not using a DB, but I am busy and need to complete this asap
 products = [
@@ -20,7 +21,7 @@ products = [
 def get_products():
     return jsonify({"Products": products})
 
-
+# Get info on specific product based off product id
 @app.route('/products/<int:product_id>', methods=['GET'])
 def get_product_info(product_id):
     product = next((product for product in products if product['id'] == product_id), None)
@@ -29,6 +30,7 @@ def get_product_info(product_id):
     else:
         return jsonify({'Error': "Product Not Found"}), 404
 
+# Add new product to inventory
 @app.route('/products', methods=['POST'])
 def add_product():
     product = {
@@ -39,6 +41,37 @@ def add_product():
     }
     products.append(product)
     return jsonify({"New Product": product})
+
+
+# From here on and below, endpoints will interact with the cart service
+@app.route('/products/retrieve', methods=["POST"])
+def retrieve_product():
+    product_name = request.json.get('name')
+    specified_quantity = request.json.get('quantity')
+    if (specified_quantity == None):
+        specified_quantity = 1
+    product = next((product for product in products if product['name'] == product_name), None)
+    if product:
+        purchased_product = copy(product)
+        purchased_product['quantity'] = 0
+        counter = 0
+        # Remove one item at a time in case user tries getting more than available
+        while counter < specified_quantity: 
+          if product['quantity'] > 0:
+            product['quantity'] = product['quantity'] - 1
+            purchased_product['quantity'] = purchased_product['quantity'] + 1
+          else:
+            if counter == 0:
+              return jsonify(product), 410
+            return jsonify(purchased_product), 206
+          counter += 1
+        print('Product remains')
+        print(product)
+        return jsonify(purchased_product)  # Successfully added desired quantity
+    else:
+        return jsonify({"Error": "Product Not Found"}), 404
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
