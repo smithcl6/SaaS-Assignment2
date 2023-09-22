@@ -6,8 +6,6 @@ app = Flask(__name__)
 
 load_dotenv()
 PRODUCTS_URL = os.getenv('PRODUCTS_URL')
-print('GAAAAAAH\n\n')
-print(PRODUCTS_URL)
 
 carts = [
     {"user": 1, "products": [{'name': 'Froot Loops','price': 2.50, 'id': 1, 'quantity': 3}, {'name': 'Milk', 'price': 3.49, 'id': 2, 'quantity': 2}]},
@@ -86,6 +84,12 @@ def return_product(user_id, product_id):
   else:
      return jsonify({"Cart unchanged": "Product does not exist"})
 
+# Add new user/cart; optional but I made it for completion sake
+@app.route("/cart/new", methods=["GET"])
+def new_cart():
+  cart = {"user": len(carts) + 1, "products": []}
+  carts.append(cart)
+  return jsonify({"Carts": carts})
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
